@@ -25,21 +25,22 @@ function mkdirAndPermissions() {
   local owner="$2"
   local group="$3"
 
-  # mkdir -p "$path"
+  mkdir -p "$path"
 
-  # chown -R "$owner":"$group" "$path"
-  # chmod g+w "$path"
+  chown -R "$owner":"$group" "$path"
+  chmod g+w "$path"
 }
 
 function createUser() {
   local username="$1"
 
-  # sudo useradd -m "$username"
-  # sudo usermod -L "$username"
-  # sudo usermod -a -G "$username" "$USER"
+  if ! id "$username" &>/dev/null; then
+    useradd -m "$username"
+    usermod -L "$username"
+    usermod -a -G "$username" "$USER"
+  fi
 
-  # echo "$(id -u "$username")" "$(id -g "$username")"
-  echo "u-$username" "g-$username"
+  echo "$(id -u "$username")" "$(id -g "$username")"
 }
 
 function createConfigAndUser() {
@@ -50,6 +51,7 @@ function createConfigAndUser() {
   local home_location="${HOME_PATH}/${service}"
   local config_location="${home_location}/${CONFIG_FOLDER_NAME}"
 
+  mkdirAndPermissions "$home_location" "$service" "$service"
   mkdirAndPermissions "$config_location" "$service" "$service"
 
   echo "$user_id" "$group_id" "$config_location"
@@ -78,6 +80,7 @@ function createDelugeConfig() {
   local in_progress="in-progress"
   local completed="completed"
 
+  mkdirAndPermissions "${download_location}" "$service" "$service"
   mkdirAndPermissions "${download_location}/${in_progress}" "$service" "$service"
   mkdirAndPermissions "${download_location}/${completed}" "$service" "$service"
 
