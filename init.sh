@@ -2,9 +2,6 @@
 
 HOME_PATH=/home
 CONFIG_FOLDER_NAME=config
-MNT_PATH=/mnt
-DOWNLOAD_PATH="${MNT_PATH}/downloads"
-MEDIA_PATH="${MNT_PATH}/media"
 
 DELUGE_SERVICE_NAME="deluge"
 PROFILARR_SERVICE_NAME="profilarr"
@@ -42,7 +39,7 @@ function createUser() {
   # sudo usermod -a -G "$username" "$USER"
 
   # echo "$(id -u "$username")" "$(id -g "$username")"
-  echo "1111" "2222"
+  echo "u-$username" "g-$username"
 }
 
 function createConfigAndUser() {
@@ -56,19 +53,6 @@ function createConfigAndUser() {
   mkdirAndPermissions "$config_location" "$service" "$service"
 
   echo "$user_id" "$group_id" "$config_location"
-}
-
-function setupMedia() {
-  local media_location="$1"
-
-  local movies_location_1="${media_location}/movies_1"
-  local tv_location_1="${media_location}/tv_1"
-
-  mkdirAndPermissions "$media_location" "$USER" "$USER"
-  mkdirAndPermissions "$movies_location_1" "$USER" "$USER"
-  mkdirAndPermissions "$tv_location_1" "$USER" "$USER"
-
-  echo "$movies_location_1" "$tv_location_1"
 }
 
 function createJellyfinConfigAndCache() {
@@ -86,33 +70,41 @@ function createJellyfinConfigAndCache() {
 
 function createDelugeConfig() {
   local service="$1"
-  local download_location="$2"
+  local download_path="$2"
 
   read -r user_id group_id config_location < <(createConfigAndUser "$service")
 
+  local download_location="${download_path}/${service}"
   local in_progress="in-progress"
   local completed="completed"
 
-  mkdirAndPermissions "$download_location" "$service" "$service"
   mkdirAndPermissions "${download_location}/${in_progress}" "$service" "$service"
   mkdirAndPermissions "${download_location}/${completed}" "$service" "$service"
+
+  echo "$user_id" "$group_id" "$config_location" "$download_location"
+}
+
+function createArrConfig() {
+  local service="$1"
+  local media_location="$2"
+
+  read -r user_id group_id config_location < <(createConfigAndUser "$service")
+  
+  mkdirAndPermissions "$media_location" "$service" "$USER"
 
   echo "$user_id" "$group_id" "$config_location"
 }
 
-DOWNLOAD_LOCATION="${DOWNLOAD_PATH}/${DELUGE_SERVICE_NAME}"
-
 read -r wireguard_private_key < <(prompt "Wireguard private key: ")
+read -r download_path < <(prompt "Download path: ")
+read -r tv_path < <(prompt "TV path: ")
+read -r movies_path < <(prompt "Movie path: ")
 
-read -r movies_location_1 tv_location_1 < <(setupMedia "${MEDIA_PATH}")
-
-read -r deluge_user_id deluge_group_id deluge_config_location < <(createDelugeConfig $DELUGE_SERVICE_NAME "$DOWNLOAD_LOCATION")
+read -r deluge_user_id deluge_group_id deluge_config_location download_location < <(createDelugeConfig $DELUGE_SERVICE_NAME "$download_path")
 read -r jellyfin_user_id jellyfin_group_id jellyfin_config_location jellyfin_cache_location < <(createJellyfinConfigAndCache $JELLYFIN_SERVICE_NAME)
 
-read -r radarr_user_id radarr_group_id radarr_config_location < <(createConfigAndUser $RADARR_SERVICE_NAME)
-# chown -R "$RADARR_SERVICE_NAME":"$USER" "$movies_location_1"
-read -r sonarr_user_id sonarr_group_id sonarr_config_location < <(createConfigAndUser $SONARR_SERVICE_NAME)
-# chown -R "$SONARR_SERVICE_NAME":"$USER" "$tv_location_1"
+read -r radarr_user_id radarr_group_id radarr_config_location < <(createArrConfig $RADARR_SERVICE_NAME "$movies_path")
+read -r sonarr_user_id sonarr_group_id sonarr_config_location < <(createArrConfig $SONARR_SERVICE_NAME "$tv_path")
 
 read -r profilarr_user_id profilarr_group_id profilarr_config_location < <(createConfigAndUser $PROFILARR_SERVICE_NAME)
 read -r prowlarr_user_id prowlarr_group_id prowlarr_config_location < <(createConfigAndUser $PROWLARR_SERVICE_NAME)
@@ -123,26 +115,26 @@ export WIREGUARD_PRIVATE_KEY="$wireguard_private_key"
 export DELUGE_USER_ID="$deluge_user_id"
 export DELUGE_GROUP_ID="$deluge_group_id"
 export DELUGE_CONFIG_LOCATION="$deluge_config_location"
-export DELUGE_DOWNLOAD_LOCATION="$DOWNLOAD_LOCATION"
+export DELUGE_DOWNLOAD_LOCATION="$download_location"
 
 export JELLYFIN_USER_ID="$jellyfin_user_id"
 export JELLYFIN_GROUP_ID="$jellyfin_group_id"
 export JELLYFIN_CONFIG_LOCATION="$jellyfin_config_location"
 export JELLYFIN_CACHE_LOCATION="$jellyfin_cache_location"
-export JELLYFIN_MEDIA_LOCATION_MOVIES_1="$movies_location_1"
-export JELLYFIN_MEDIA_LOCATION_TV_1="$tv_location_1"
+export JELLYFIN_MEDIA_LOCATION_MOVIES_1="$movies_path"
+export JELLYFIN_MEDIA_LOCATION_TV_1="$tv_path"
 
 export RADARR_USER_ID="$radarr_user_id"
 export RADARR_GROUP_ID="$radarr_group_id"
 export RADARR_CONFIG_LOCATION="$radarr_config_location"
-export RADARR_MOVIES_LOCATION="$MEDIA_PATH"
-export RADARR_DOWNLOADS_LOCATION="$DOWNLOAD_LOCATION"
+export RADARR_MOVIES_LOCATION="$movies_path"
+export RADARR_DOWNLOADS_LOCATION="$download_location"
 
 export SONARR_USER_ID="$sonarr_user_id"
 export SONARR_GROUP_ID="$sonarr_group_id"
 export SONARR_CONFIG_LOCATION="$sonarr_config_location"
-export SONARR_TV_LOCATION="$MEDIA_PATH"
-export SONARR_DOWNLOADS_LOCATION="$DOWNLOAD_LOCATION"
+export SONARR_TV_LOCATION="$tv_path"
+export SONARR_DOWNLOADS_LOCATION="$download_location"
 
 export PROFILARR_USER_ID="$profilarr_user_id"
 export PROFILARR_GROUP_ID="$profilarr_group_id"
