@@ -8,6 +8,7 @@ services:
     devices:
       - /dev/net/tun:/dev/net/tun
     ports:
+      - 8112:8112 # deluge wui
       - 58846:58846 # deluge daemon
       - 8888:8888/tcp # privoxy
     environment:
@@ -24,17 +25,19 @@ services:
     network_mode: service:gluetun
     depends_on:
       - gluetun
-    volumes:
-      - ${DELUGE_DOWNLOAD_LOCATION}:/downloads
-      - ${DELUGE_CONFIG_LOCATION}:/config
     environment:
       - PUID=${DELUGE_USER_ID}
       - PGID=${DELUGE_GROUP_ID}
       - TZ=Europe/Brussels
+    volumes:
+      - ${DELUGE_DOWNLOAD_LOCATION}:/downloads
+      - ${DELUGE_CONFIG_LOCATION}:/config
   # Movie auto-search and download
   radarr:
     image: lscr.io/linuxserver/radarr:6.0.4.10291-ls289
     restart: unless-stopped
+    ports:
+      - 7878:7878
     environment:
       - PUID=${RADARR_USER_ID}
       - PGID=${RADARR_GROUP_ID}
@@ -47,6 +50,8 @@ services:
   sonarr:
     image: lscr.io/linuxserver/sonarr:4.0.16.2944-ls300
     restart: unless-stopped
+    ports:
+      - 8989:8989
     environment:
       - PUID=${SONARR_USER_ID}
       - PGID=${SONARR_GROUP_ID}
@@ -59,22 +64,26 @@ services:
   profilarr:
       image: santiagosayshey/profilarr:v1.1.3
       restart: unless-stopped
-      volumes:
-        - ${PROFILARR_CONFIG_LOCATION}:/config
+      ports:
+        - 6868:6868
       environment:
         - PUID=${PROFILARR_USER_ID}
         - PGID=${PROFILARR_GROUP_ID}
         - TZ=Europe/Brussels
+      volumes:
+        - ${PROFILARR_CONFIG_LOCATION}:/config
   # Torrent indexer
   prowlarr:
     image: linuxserver/prowlarr:2.3.0.5236-ls134
     restart: unless-stopped
-    volumes:
-      - ${PROWLARR_CONFIG_LOCATION}:/config
+    ports:
+      - 9696:9696
     environment:
       - PUID=${PROWLARR_USER_ID}
       - PGID=${PROWLARR_GROUP_ID}
       - TZ=Europe/Brussels
+    volumes:
+      - ${PROWLARR_CONFIG_LOCATION}:/config
   # Cloudflare bypass
   flaresolverr:
     image: flaresolverr/flaresolverr:latest
@@ -86,8 +95,16 @@ services:
     image: jellyfin/jellyfin:10.11.5
     restart: unless-stopped
     user: ${JELLYFIN_USER_ID}:${JELLYFIN_GROUP_ID}
+    ports:
+      - 8096:8096
     volumes:
       - ${JELLYFIN_CONFIG_LOCATION}:/config
       - ${JELLYFIN_CACHE_LOCATION}:/cache
-      - ${JELLYFIN_MEDIA_LOCATION_MOVIES_1}:/movies1:ro
-      - ${JELLYFIN_MEDIA_LOCATION_TV_1}:/tv1:ro
+      - type: bind
+        source: ${JELLYFIN_MEDIA_LOCATION_MOVIES_1}
+        target: /movies1
+        read_only: true
+      - type: bind
+        source: ${JELLYFIN_MEDIA_LOCATION_TV_1}
+        target: /tv1
+        read_only: true
