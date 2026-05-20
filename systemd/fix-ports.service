@@ -1,0 +1,6 @@
+[Unit]
+Description=Fix forwarded torrent ports
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash /home/<USER>/home-server/scripts/fix-ports.sh

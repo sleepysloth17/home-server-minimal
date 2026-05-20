@@ -1,0 +1,9 @@
+[Unit]
+Description=Fix forwarded torrent ports on boot and every hour
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=1h
+
+[Install]
+WantedBy=timers.target
